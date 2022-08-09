@@ -11,6 +11,10 @@ const hostname = "127.0.0.1";
 const port = process.env.PORT || 5000;
 
 app.get("/", (_, res) => {
+  res.status(200).send("Lexar");
+});
+
+app.get("/status", (_, res) => {
   res.status(200).send("Lexar Server Running.");
 });
 
