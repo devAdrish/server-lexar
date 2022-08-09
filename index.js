@@ -3,8 +3,11 @@ const app = express();
 const bcrypt =require('bcryptjs')
 const jwt = require('jsonwebtoken');
 const db = require('./source/database')
+const cors = require('cors');
+
 db.connect();
 app.use(express.json());
+app.use(cors());
 const User = require("./source/models/user");
 
 const hostname = "127.0.0.1";
