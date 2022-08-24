@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
-const MONGO_URI = `mongodb+srv://adrish:letmepass567@cluster0.gtdnu0r.mongodb.net/?authSource=admin&retryWrites=true&w=majority&ssl=true`
-
+const MONGO_URI = process.env.MONGODB_URI.toString();
 exports.connect = () => {
   console.log('Connecting to DB ....')
   mongoose
