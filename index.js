@@ -20,10 +20,6 @@ app.get("/", (_, res) => {
   res.status(200).send("Lexar");
 });
 
-app.get("/status", (_, res) => {
-  res.status(200).send("Lexar Server Running.");
-});
-
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
