@@ -125,4 +125,24 @@ router.get("/getUserInfo", async (req, res) => {
   }
 });
 
+router.post("/updateUserInfo", async (req, res) => {
+  try {
+    const { email, id } = req.user;
+    const { name, age, address, about, contact, photo, website, occupation } = req.body;
+  
+    const user = await User.findOneAndUpdate({email}, {$set: {
+      name, age, address, about, contact, photo, website, occupation  }},
+      { returnOriginal: false }
+    );
+
+      const { _doc } = user;
+      delete _doc.role; delete _doc.__v; delete  _doc._id; delete _doc.password;
+      return res
+        .status(200)
+        .json(preparedResponse.success({ id, ..._doc }));
+  } catch (err) {
+    return res.status(500).send(preparedResponse.serverError(err.toString()));
+  }
+});
+
 module.exports = router;
