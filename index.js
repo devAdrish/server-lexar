@@ -53,7 +53,7 @@ app.use(function(_, res, next){
 app.use(chatRoutes);
 app.use(userRoutes);
 
-const hostname = "localhost";
+const hostname = "127.0.0.1";
 const port = process.env.PORT || 5000;
 
 app.listen(port, hostname, () => {
@@ -68,7 +68,7 @@ const io = require("socket.io")(server, {
   },
 });
 
-const socketport = process.env.SOCKET_PORT || 8000;
+const socketport = process.env.SOCKET_PORT || 8080;
 // io.use((socket, next) => {
 //   const sessionID = socket.handshake.auth.sessionID;
 //   if (sessionID) {
@@ -98,6 +98,6 @@ io.of("/chat").on("connection", (socket) => {
   io.of("/chat").to(socket.id).emit('msg', `hey @${Date.now().toString()}`)
 });
 
-server.listen(socketport, () => {
-  console.log(`Socket.IO server running at http://localhost:${socketport}/`);
+server.listen(socketport, hostname, () => {
+  console.log(`Socket.IO server running at http://${hostname}:${socketport}/`);
 });
