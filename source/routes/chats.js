@@ -27,7 +27,9 @@ router.post("/chatMessage/:to", async (req, res) => {
         isUser1Online: userArr[0] === from,
         isUser2Online: userArr[1] === from,
       });
-      res.io.of("/chat").to(socket.id).emit("message", { message, from, time });
+      if(user2.chatSocketId){
+        res.io.of("/chat").to(user2.chatSocketId).emit("message", { message, from, time });
+      }
       return res.status(200).send(preparedResponse.success(newChat));
     } else {
       const allChat = await Chat.findOneAndUpdate(
@@ -35,6 +37,9 @@ router.post("/chatMessage/:to", async (req, res) => {
         { $push: { messages: { message, from, time } } },
         { returnOriginal: false }
       );
+      if(user2.chatSocketId){
+        res.io.of("/chat").to(user2.chatSocketId).emit("message", { message, from, time });
+      }
       return res.status(200).send(preparedResponse.success(allChat.messages));
     }
   } catch (err) {
