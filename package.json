@@ -1,5 +1,6 @@
 {
   "name": "server",
+  "type": "commonjs",
   "version": "1.0.0",
   "description": "lexar-backend",
   "main": "index.js",
@@ -22,6 +23,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.5.1",
     "morgan": "^1.10.0",
+    "socket.io": "^4.5.2",
     "ts-node": "^10.9.1",
     "typescript": "^4.7.4"
   }

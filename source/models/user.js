@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
   occupation: { type: String, default: ""},
   age: { type: String, default: ""},
   about: { type: String, default: ""},
-  role: { type: String, default: 'user'}
+  role: { type: String, default: 'user'},
+  chatSocketId: {type: String | Number, default: ""},
 });
 
 module.exports = mongoose.model("user", userSchema);
