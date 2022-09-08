@@ -125,23 +125,6 @@ router.get("/getUserInfo", async (req, res) => {
   }
 });
 
-router.get("/setSocketId/:id", async (req, res) => {
-  try {
-    const { email, id } = req.user;
-    const { id: chatSocketId } = req.params;
-    const user = await User.findOneAndUpdate({email}, {$set: { chatSocketId }},
-      { returnOriginal: false }
-    );
-      const { _doc } = user;
-      delete _doc.role; delete _doc.__v; delete  _doc._id; delete _doc.password;
-      return res
-        .status(200)
-        .json(preparedResponse.success({ id, ..._doc }));
-  } catch (err) {
-    return res.status(500).send(preparedResponse.serverError(err.toString()));
-  }
-});
-
 router.post("/updateUserInfo", async (req, res) => {
   try {
     const { email, id } = req.user;

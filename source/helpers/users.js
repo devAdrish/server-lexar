@@ -3,7 +3,7 @@ const Chat = require("../models/chat");
 
 const startChat = async (data) => {
   try {
-    const {chatSocketId, message, from, to, time } = data;
+    const {chatSocketId, from, to } = data;
     const user1 = await User.findOne({ email: from });
     const user2 = await User.findOne({ email: to });
 
@@ -17,7 +17,7 @@ const startChat = async (data) => {
         chatId,
         user1: userArr[0],
         user2: userArr[1],
-        messages: [{ message, from, time }],
+        messages: [],
         isUser1Online: userArr[0] === from,
         isUser2Online: userArr[1] === from,
       });
@@ -27,11 +27,7 @@ const startChat = async (data) => {
       );
       return { error: false, chat: newChat, };
     } else {
-      const allChat = await Chat.findOneAndUpdate(
-        { chatId },
-        { $push: { messages: { message, from, time } } },
-        { returnOriginal: false }
-      );
+      const allChat = await Chat.findOne({chatId})
       await User.findOneAndUpdate(
         { email: from },
         { $set: { chatSocketId } },
@@ -43,34 +39,37 @@ const startChat = async (data) => {
   }
 };
 
-// const addUser = ({ id, name, room }) => {
-//   name = name.trim().toLowerCase();
-//   room = room.trim().toLowerCase();
+const findChat = async (data) => {
+  try {
+    const { from, to, message } = data;
+    const user1 = await User.findOne({ email: from });
+    const user2 = await User.findOne({ email: to });
+    if (!user1 || !user2) return { error: true, chat: null };
+    
+    const userArr = [user1.email, user2.email].sort();
+    const chatId = `${userArr[0]}&${userArr[1]}`;
 
-//   const existingUser = users.find(
-//     (user) => user.room === room && user.name === name
-//   );
+    const chat = await Chat.findOneAndUpdate(
+      { chatId },
+      { $push: { messages: {message, from} } },
+      { returnOriginal: false }
+    ).exec();
 
-//   if (!name || !room) return { error: "Username and room are required." };
-//   if (existingUser) return { error: "Username is taken." };
+    return { error: false, chat };
+  }
+  catch(_) {
+    return { error: true, chat: null };
+  }
+}
 
-//   const user = { id, name, room };
+const findAllChatsOfUser = async (email) => {
+  try {
+    const chats = await Chat.find({ email });
+    return { error: false, chats };
+  }
+  catch (_) {
+    return { error: true, chats: [] };
+  }
+}
 
-//   users.push(user);
-
-//   return { user };
-// };
-
-// const removeUser = (id) => {
-//   const index = users.findIndex((user) => user.id === id);
-
-//   if (index !== -1) return users.splice(index, 1)[0];
-// };
-
-// const getUser = (id) => users.find((user) => user.id === id);
-const getChatUser = async (id) => await User.findOne({ chatSocketId: id })
-
-// const getUsersInRoom = (room) => users.filter((user) => user.room === room);
-
-// module.exports = { startChat, addUser, removeUser, getUser, getUsersInRoom };
-module.exports = { startChat, getChatUser };
+module.exports = { startChat, findChat, findAllChatsOfUser  };
