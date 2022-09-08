@@ -37,9 +37,12 @@ router.post("/chatMessage/:to", async (req, res) => {
         { $push: { messages: { message, from, time } } },
         { returnOriginal: false }
       );
-      if(user2.chatSocketId){
+      console.log('====================================');
+      console.log(user2.chatSocketId, res.io);
+      console.log('====================================');
+     
         res.io.of("/chat").to(user2.chatSocketId).emit("message", { message, from, time });
-      }
+  
       return res.status(200).send(preparedResponse.success(allChat.messages));
     }
   } catch (err) {

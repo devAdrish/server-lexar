@@ -4,7 +4,7 @@ const chatSchema = new mongoose.Schema({
   user1: String,
   user2: String,
   messages: [ { message: String, from: String, time: Date  } ],
-  messgesSeen:  Boolean,
+  lastMessageSeen:  Boolean,
   isUser1Online: Boolean,
   isUser2Online: Boolean,
   chatId : { type: String, unique: true }
