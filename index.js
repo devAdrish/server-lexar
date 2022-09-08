@@ -1,13 +1,23 @@
 require("dotenv").config();
 const express = require("express");
 const app = express();
-// const http = require('http');
-// const socketio = require('socket.io');
+const http = require('http');
+const server = http.createServer(app);
+// const io = socketio(server);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: ["http://localhost:3000", "http://localhost:5000"],
+    credentials: true,
+    methods: ["GET", "POST"],
+    transports: ['websocket', 'polling'],
+  },
+  allowEIO3: true
+});
 const cors = require("cors");
 // const helmet = require("helmet");
 // const morgan = require("morgan");
 // const { addUser, removeUser, getUser, getUsersInRoom } = require('./source/utils');
-// const { getUser, startChat } = require('./source/helpers/users');
+const { getUser, startChat } = require('./source/helpers/users');
 
 const db = require("./source/database");
 db.connect();
@@ -49,7 +59,7 @@ app.use(express.json());
 // });
 // const io = socketio(server);
 
-app.use(cors());
+app.use(cors({credentials: true, origin: ['http://localhost:5000' ,'http://localhost:3000',]}));
 // app.use(express.static("public"));
 // app.use(helmet());
 // if (app.get("env") === "development") {
@@ -77,42 +87,46 @@ app.get("/status", (_, res) => {
 // app.use(chatRoutes);
 app.use(userRoutes);
 
-// io.on('connect', (socket) => {
-//   socket.on('join', async ({ message, from, to, time }, callback) => {
-//     const { error, chat } = startChat({chatSocketId: socket.id, message, from, to, time })
-//     if(error) return callback(error);
+io.on('connect', (socket) => {
+  console.log('====================================');
+  console.log(socket.id);
+  console.log('====================================');
+  socket.on('join', async ({ message, from, to, time }, callback) => {
+    // const { error, chat } = startChat({chatSocketId: socket.id, message, from, to, time })
+    // if(error) return callback(error);
 
-//     socket.join(chat.chatId);
+    // socket.join(chat.chatId);
 
-//     socket.emit('message', { user: 'admin', message: `${from}, welcome to room ${chat.chatId}.`});
-//     socket.broadcast.to(chat.chatId).emit('status update', { text: `${from} is Online!` });
+    socket.emit('message', { user: 'admin', message: `${from}, welcome to roomx.`});
+    // socket.broadcast.to(chat.chatId).emit('status update', { text: `${from} is Online!` });
 
-//     // io.to(chat.chatId).emit('roomData', { room: chat.chatId, users: getUsersInRoom(user.room) });
 
-//     callback();
-//   });
+    // io.to(chat.chatId).emit('roomData', { room: chat.chatId, users: getUsersInRoom(user.room) });
 
-//   socket.on('sendMessage', (message, callback) => {
-//     const user = getUser(socket.id);
+    callback();
+  });
+
+  socket.on('sendMessage', (message, callback) => {
+    const user = getUser(socket.id);
     
-//     io.to(chat.chatId).emit('message', { user: user.name, text: message });
+    io.to(chat.chatId).emit('message', { user: user.name, text: message });
 
-//     callback();
-//   });
+    callback();
+  });
 
-//   socket.on('disconnect', () => {
-//     // const user = removeUser(socket.id);
+  socket.on('disconnect', () => {
+    // const user = removeUser(socket.id);
 
-//     // if(user) {
-//     //   io.to(chat.chatId).emit('message', { user: 'Admin', text: `${user.name} has left.` });
-//     //   io.to(chat.chatId).emit('roomData', { room: chat.chatId, users: getUsersInRoom(chat.chatId)});
-//     // }
-//   })
-// });
+    // if(user) {
+    //   io.to(chat.chatId).emit('message', { user: 'Admin', text: `${user.name} has left.` });
+    //   io.to(chat.chatId).emit('roomData', { room: chat.chatId, users: getUsersInRoom(chat.chatId)});
+    // }
+  })
+});
 
 const hostname = "127.0.0.1";
 const port = process.env.PORT || 7000;
 
-app.listen(port, hostname, () => {
+server.listen(port, hostname, () => {
   console.log(`Server has started`);
 });
