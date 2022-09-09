@@ -10,7 +10,7 @@ db.connect();
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5000", 'https://lexar-app.vercel.app'],
+    origin: "*",
     credentials: true,
     methods: ["GET", "POST"],
     transports: ['websocket', 'polling'],
@@ -29,7 +29,7 @@ const { updateChatMessages, startChat, findAllChatsOfUser } = require('./source/
 // }
 
 app.use(express.json());
-app.use(cors({credentials: true, origin: ['http://localhost:5000' ,'http://localhost:3000',]}));
+app.use(cors({credentials: true, origin: "*"}));
 
 app.get("/", (_, res) => {
   res.status(200).send("Lexar Online");
