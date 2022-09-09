@@ -67,9 +67,8 @@ io.on('connect', (socket) => {
   })
 });
 
-const hostname = "127.0.0.1";
-const port = process.env.PORT || 7000;
+const PORT = process.env.PORT || 7000;
 
-server.listen(port, hostname, () => {
+server.listen(PORT, () => {
   console.log(`Server has started`);
 });
