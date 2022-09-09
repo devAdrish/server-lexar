@@ -10,7 +10,7 @@ db.connect();
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5000"],
+    origin: ["http://localhost:3000", "http://localhost:5000", 'https://lexar-app.vercel.app'],
     credentials: true,
     methods: ["GET", "POST"],
     transports: ['websocket', 'polling'],
@@ -20,7 +20,7 @@ const io = require("socket.io")(server, {
 
 const userRoutes = require("./source/routes/users");
 const chatRoutes = require("./source/routes/chats");
-const { findChat, startChat } = require('./source/helpers/users');
+const { updateChatMessages, startChat, findAllChatsOfUser } = require('./source/helpers/users');
 
 // app.use(express.static("public"));
 // app.use(helmet());
@@ -40,29 +40,31 @@ app.use(chatRoutes);
 
 io.on('connect', (socket) => {
   socket.on('join', async ({ from, to }, callback) => {
-    const { error, chat } = await startChat({chatSocketId: socket.id, from, to })
-    if(error) return callback({status: 'error', error});
+    const { error, chatId, text } = await startChat({chatSocketId: socket.id, from, to })
+    if(error) return callback({status: 'error', text});
+    socket.join(chatId);
+    callback({status: 'success'});
 
-    socket.join(chat.chatId);
-    callback({status: 'success' });
-
-    socket.emit('publicMessage', 'Welcome');
-    socket.broadcast.to(chat.chatId).emit('statusUpdate', { text: `${from} is Online!` });
+    const result = await findAllChatsOfUser(from)
+    if(result.chats.length > 0)
+    result.chats.forEach((chat) => {
+      socket.broadcast.to(chat.chatId).emit('statusUpdate', { text: `${from} is Online!` });
+    });
   });
 
   socket.on('sendMessage', async ({from, to, message}, callback) => {
-    const {error, chat } = await findChat({ from, to, message});
-    if(error) return callback(error);
-    io.to(chat.chatId).emit('message', { from, message });
-
+    const { error, chatId, text } = await updateChatMessages({ from, to, message});
+    if(error) return callback({status: 'error', text});
+    io.to(chatId).emit('message', { from, message });
   });
 
-  // socket.on('disconnect', (user) => {
-    // const chats = await findAllChatsOfUser(user.email)
-    // chats.forEach((chat) => {
-    //   socket.broadcast.to(chat.chatId).emit('statusUpdate', { text: `${from} is Offline!` });
-    // });
-  // })
+  socket.on('disconnection', async (payload) => {
+    const result = await findAllChatsOfUser(payload.user)
+    if(result.chats.length > 0)
+    result.chats.forEach((chat) => {
+      socket.broadcast.to(chat.chatId).emit('statusUpdate', { text: `${payload.user} is Offline!` });
+    });
+  })
 });
 
 const hostname = "127.0.0.1";
