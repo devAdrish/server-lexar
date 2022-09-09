@@ -7,7 +7,6 @@ const preparedResponse = new Response();
 
 const { findAllChatsOfUser } = require('../helpers/users');
 
-
 router.get("/chat/:user1/:user2", async (req, res) => {
   try {
     const { user1, user2 } = req.params;
