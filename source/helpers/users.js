@@ -12,21 +12,15 @@ const startChat = async (data) => {
 
     const userArr = [user1.email, user2.email].sort();
     const chatId = `${userArr[0]}&${userArr[1]}`;
-    const chat = await Chat.findOne({ chatId }).exec();
+    const chat = await Chat.findOne({ chatId })
     if (!chat) {
-      const newChat = await Chat.create({
+      await Chat.create({
         chatId,
-        user1: userArr[0],
-        user2: userArr[1],
+        users: [userArr[0], userArr[1]],
         messages: [],
-        isUser1Online: userArr[0] === from,
-        isUser2Online: userArr[1] === from,
       });
-      return { error: false, chatId: newChat.chatId };
-    } else {
-      const allChat = await Chat.findOne({ chatId }, { chatId: 1 });
-      return { error: false, chatId: allChat.chatId };
     }
+    return { error: false, chatId };
   } catch (er) {
     return { error: true, chat: null, text: "Interval Server Error" };
   }
@@ -37,29 +31,44 @@ const updateChatMessages = async (data) => {
     const { from, to, message } = data;
     const user1 = await User.findOne({ email: from });
     const user2 = await User.findOne({ email: to });
-    if (!user1 || !user2) return { error: true, chatId: null, text: 'User not found' };
+    if (!user1 || !user2)
+      return { error: true, chatId: null, text: "User not found" };
 
     const userArr = [user1.email, user2.email].sort();
     const chatId = `${userArr[0]}&${userArr[1]}`;
 
-    const chat = await Chat.findOneAndUpdate(
+    await Chat.findOneAndUpdate(
       { chatId },
       { $push: { messages: { message, from } } },
-      { returnOriginal: false }
-    ).exec();
-    return { error: false, chatId: chat.chatId };
+    )
+    return { error: false, chatId };
   } catch (_) {
-    return { error: true, chatId: null, text: 'Interval Server Error' };
+    return { error: true, chatId: null, text: "Interval Server Error" };
   }
 };
 
 const findAllChatsOfUser = async (email) => {
   try {
-    const chats = await Chat.find().or([{ user1: email }, { user2: email }]).select({chatId: 1});
+    const chats = await Chat.find({ users: { $in: [email] } }).select({
+      chatId: 1,
+    });
     return { error: false, chats };
   } catch (_) {
     return { error: true, chats: [] };
   }
 };
 
-module.exports = { startChat, updateChatMessages, findAllChatsOfUser };
+const updateUserStatus = async (email, status) => {
+  try {
+    await User.findOneAndUpdate({ email }, {
+      $set: {
+        isOnline: status
+      }
+    })
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+module.exports = { startChat, updateChatMessages, findAllChatsOfUser, updateUserStatus };

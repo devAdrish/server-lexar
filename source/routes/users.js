@@ -112,7 +112,7 @@ router.get("/getUserInfo", async (req, res) => {
     const { email, id } = req.user;
     const user = await User.findOne(
       { email },
-      { password: 0, __v: 0, role: 0, _id: 0 }
+      { password: 0, __v: 0, role: 0, _id: 0, friends: 0 }
     );
     if (user._doc) {
       return res
@@ -128,18 +128,103 @@ router.get("/getUserInfo", async (req, res) => {
 router.post("/updateUserInfo", async (req, res) => {
   try {
     const { email, id } = req.user;
-    const { name, age, address, about, contact, photo, website, occupation } = req.body;
-  
-    const user = await User.findOneAndUpdate({email}, {$set: {
-      name, age, address, about, contact, photo, website, occupation  }},
+    const { name, age, address, about, contact, photo, website, occupation } =
+      req.body;
+
+    const user = await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          name,
+          age,
+          address,
+          about,
+          contact,
+          photo,
+          website,
+          occupation,
+        },
+      },
       { returnOriginal: false }
     );
 
-      const { _doc } = user;
-      delete _doc.role; delete _doc.__v; delete  _doc._id; delete _doc.password;
+    const { _doc } = user;
+    delete _doc.role;
+    delete _doc.__v;
+    delete _doc._id;
+    delete _doc.password;
+    delete _doc.isOnline;
+    delete _doc.friends;
+    return res.status(200).json(preparedResponse.success({ id, ..._doc }));
+  } catch (err) {
+    return res.status(500).send(preparedResponse.serverError(err.toString()));
+  }
+});
+
+router.get("/getFriendsInfo", async (req, res) => {
+  try {
+    const { friends } = await User.findOne({ email: req.user.email }).select({
+      friends: 1,
+    });
+
+    if (friends.length > 0) {
+      const promises = friends.map(async (d) => {
+        const friend = await User.findOne({ email: d }).select({
+          email: 1,
+          photo: 1,
+          about: 1,
+          isOnline: 1,
+          _id: 0,
+        });
+        return friend;
+      });
+      const info = await Promise.all(promises);
+      return res.status(200).send(preparedResponse.success(info));
+    }
+    return res.status(200).send(preparedResponse.success([]));
+  } catch (err) {
+    return res.status(500).send(preparedResponse.serverError(err.toString()));
+  }
+});
+
+router.get("/addFriend/:friend", async (req, res) => {
+  try {
+    const { friend } = req.params;
+    if (!friend)
+      return res.status(404).send(preparedResponse.error("Invalid params"));
+
+    if (friend === req.user.email)
+      return res.status(403).send(preparedResponse.error("Forbidden Action"));
+
+    const exists = await User.findOne({ email: friend });
+    if (!exists)
       return res
         .status(200)
-        .json(preparedResponse.success({ id, ..._doc }));
+        .send(
+          preparedResponse.success("User with provided email doesn't exist")
+        );
+    if (exists.friends.includes(req.user.email))
+      return res
+        .status(200)
+        .send(
+          preparedResponse.success(`${friend} is already in your friendslist`)
+        );
+
+    const { friends } = await User.findOneAndUpdate(
+      { email: req.user.email },
+      { $push: { friends: friend } },
+      {
+        fields: { friends: 1 },
+        new: true,
+      }
+    );
+
+    await User.findOneAndUpdate(
+      { email: friend },
+      { $push: { friends: req.user.email } }
+    );
+
+    return res.status(200).send(preparedResponse.success(friends));
   } catch (err) {
     return res.status(500).send(preparedResponse.serverError(err.toString()));
   }
