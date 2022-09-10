@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
   about: { type: String, default: "" },
   role: { type: String, default: "user" },
   isOnline: { type: Boolean, default: false },
-  friends: []
+  socketId: { type: String, default: "" },
+  friends: [],
 });
 
 module.exports = mongoose.model("user", userSchema);

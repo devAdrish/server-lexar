@@ -23,7 +23,6 @@ const chatRoutes = require("./source/routes/chats");
 const {
   updateChatMessages,
   startChat,
-  findAllChatsOfUser,
   updateUserStatus,
 } = require("./source/helpers/users");
 
@@ -43,53 +42,37 @@ app.get("/", (_, res) => {
 app.use(userRoutes);
 app.use(chatRoutes);
 
-io.on("connect", (socket) => {
+io.on("connect", async (socket) => {
+  const handshakeData = socket.request;
+  const { email } = handshakeData._query;
+  updateUserStatus({ email, status: true, socketId: socket.id, io });
+
   socket.on("join", async ({ from, to }, callback) => {
-    const { error, chatId, text } = await startChat({
-      chatSocketId: socket.id,
-      from,
-      to,
-    });
-    if (error) return callback({ status: "error", text });
-    socket.join(chatId);
-    callback({ status: "success" });
-    const success = await updateUserStatus(from, true);
-    if (success) {
-      const result = await findAllChatsOfUser(from);
-      if (result.chats.length > 0)
-        result.chats.forEach((chat) => {
-          socket.broadcast.to(chat.chatId).emit("statusUpdate", {
-            text: `${from} is Online!`,
-            user: from,
-            status: "Online",
-          });
-        });
-    }
+    try {
+      const { error, chatId, text } = await startChat({
+        from,
+        to,
+      });
+      if (error) return callback({ status: "error", text });
+      socket.join(chatId);
+      callback({ status: "success" });
+    } catch (_) {}
   });
 
   socket.on("sendMessage", async ({ from, to, message }, callback) => {
-    const { error, chatId, text } = await updateChatMessages({
-      from,
-      to,
-      message,
-    });
-    if (error) return callback({ status: "error", text });
-    io.to(chatId).emit("message", { from, message });
+    try {
+      const { error, chatId, text } = await updateChatMessages({
+        from,
+        to,
+        message,
+      });
+      if (error) return callback({ status: "error", text });
+      socket.to(chatId).emit("message", { from, message });
+    } catch (_) {}
   });
 
-  socket.on("disconnection", async ({ user }) => {
-    const success = await updateUserStatus(user, false);
-    if (success) {
-      const result = await findAllChatsOfUser(user);
-      if (result.chats.length > 0)
-        result.chats.forEach((chat) => {
-          socket.broadcast.to(chat.chatId).emit("statusUpdate", {
-            text: `${user} is Offline!`,
-            user: user,
-            status: "Offline",
-          });
-        });
-    }
+  socket.on("disconnect", () => {
+    updateUserStatus({ email, status: false, socketId: socket.id, io });
   });
 });
 

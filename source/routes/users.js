@@ -52,7 +52,7 @@ router.post("/register", async (req, res) => {
     if (oldUser) {
       return res
         .status(409)
-        .send(preparedResponse.error("User Already Exist. Please Login"));
+        .send(preparedResponse.error("User Already Exists. Please Login"));
     }
     encryptedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
@@ -61,7 +61,7 @@ router.post("/register", async (req, res) => {
       password: encryptedPassword,
     });
     const token = jwt.sign({ id: user._id, email }, process.env.TOKEN_KEY, {
-      expiresIn: "2d",
+      expiresIn: "30d",
     });
     return res.status(201).json(
       preparedResponse.success({
@@ -112,14 +112,10 @@ router.get("/getUserInfo", async (req, res) => {
     const { email, id } = req.user;
     const user = await User.findOne(
       { email },
-      { password: 0, __v: 0, role: 0, _id: 0, friends: 0 }
+      { password: 0, role: 0, _id: 0, __v: 0, friends: 0, socketId: 0, isOnline: 0 }
     );
-    if (user._doc) {
-      return res
-        .status(200)
-        .json(preparedResponse.success({ id, ...user._doc }));
-    }
-    return res.status(400).json(preparedResponse.error("Passwords dont match"));
+
+    return res.status(200).json(preparedResponse.success({ id, ...user._doc }));
   } catch (err) {
     return res.status(500).send(preparedResponse.serverError(err.toString()));
   }
@@ -133,29 +129,10 @@ router.post("/updateUserInfo", async (req, res) => {
 
     const user = await User.findOneAndUpdate(
       { email },
-      {
-        $set: {
-          name,
-          age,
-          address,
-          about,
-          contact,
-          photo,
-          website,
-          occupation,
-        },
-      },
-      { returnOriginal: false }
-    );
-
-    const { _doc } = user;
-    delete _doc.role;
-    delete _doc.__v;
-    delete _doc._id;
-    delete _doc.password;
-    delete _doc.isOnline;
-    delete _doc.friends;
-    return res.status(200).json(preparedResponse.success({ id, ..._doc }));
+      { $set: { name,  age, address, about, contact, photo, website, occupation } }, {new: true})
+      .select({ name: 1,  age: 1, address: 1, about: 1, contact: 1, photo: 1,
+        website: 1, occupation: 1,  _id: 0 });
+    return res.status(200).json(preparedResponse.success({ id, ...user._doc }));
   } catch (err) {
     return res.status(500).send(preparedResponse.serverError(err.toString()));
   }
@@ -174,6 +151,7 @@ router.get("/getFriendsInfo", async (req, res) => {
           photo: 1,
           about: 1,
           isOnline: 1,
+          name: 1,
           _id: 0,
         });
         return friend;

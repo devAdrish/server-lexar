@@ -12,7 +12,7 @@ const startChat = async (data) => {
 
     const userArr = [user1.email, user2.email].sort();
     const chatId = `${userArr[0]}&${userArr[1]}`;
-    const chat = await Chat.findOne({ chatId })
+    const chat = await Chat.findOne({ chatId });
     if (!chat) {
       await Chat.create({
         chatId,
@@ -39,8 +39,8 @@ const updateChatMessages = async (data) => {
 
     await Chat.findOneAndUpdate(
       { chatId },
-      { $push: { messages: { message, from } } },
-    )
+      { $push: { messages: { message, from, time: Date.now().toString() } } }
+    );
     return { error: false, chatId };
   } catch (_) {
     return { error: true, chatId: null, text: "Interval Server Error" };
@@ -58,17 +58,61 @@ const findAllChatsOfUser = async (email) => {
   }
 };
 
-const updateUserStatus = async (email, status) => {
+const getFriendsSocketIds = async (email) => {
   try {
-    await User.findOneAndUpdate({ email }, {
-      $set: {
-        isOnline: status
-      }
-    })
-    return true;
+    const { friends } = await User.findOne({ email: email }).select({
+      friends: 1,
+    });
+
+    if (friends.length > 0) {
+      const promises = friends.map(async (e) => {
+        const friend = await User.findOne({ email: e }).select({
+          email: 1,
+          socketId: 1,
+          isOnline: 1,
+          _id: 0,
+        });
+        return friend;
+      });
+      const list = await Promise.all(promises);
+      return list;
+    }
+    return [];
   } catch (_) {
-    return false;
+    return [];
   }
 };
 
-module.exports = { startChat, updateChatMessages, findAllChatsOfUser, updateUserStatus };
+const updateUserStatus = async ({ email, status, socketId, io }) => {
+  try {
+    await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          isOnline: status,
+          socketId,
+        },
+      }
+    );
+    const friends = await getFriendsSocketIds(email);
+    if (friends.length > 0) {
+      friends.forEach((f) => {
+        io.to(f.socketId).emit("userOnlineStatusUpdate", {
+          text: `${email} is ${status}!`,
+          user: email,
+          isOnline: status,
+        });
+      });
+    }
+    return true;
+  } catch {}
+};
+
+
+module.exports = {
+  startChat,
+  updateChatMessages,
+  findAllChatsOfUser,
+  updateUserStatus,
+  getFriendsSocketIds,
+};
