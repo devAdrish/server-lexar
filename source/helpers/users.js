@@ -39,7 +39,7 @@ const updateChatMessages = async (data) => {
 
     await Chat.findOneAndUpdate(
       { chatId },
-      { $push: { messages: { message, from, time: Date.now().toString() } } }
+      { $push: { messages: { message, from, time: new Date() } } }
     );
     return { error: false, chatId };
   } catch (_) {
