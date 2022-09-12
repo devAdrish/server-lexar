@@ -42,7 +42,7 @@ app.get("/", (_, res) => {
 app.use(userRoutes);
 app.use(chatRoutes);
 
-io.on("connect", async (socket) => {
+io.on("connection", async (socket) => {
   const handshakeData = socket.request;
   const { email } = handshakeData._query;
   updateUserStatus({ email, status: true, socketId: socket.id, io });
@@ -67,7 +67,7 @@ io.on("connect", async (socket) => {
         message,
       });
       if (error) return callback({ status: "error", text });
-      socket.to(chatId).emit("message", { from, message });
+      socket.to(chatId).emit("message", { from, message, time: new Date() });
     } catch (_) {}
   });
 
