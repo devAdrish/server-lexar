@@ -61,13 +61,14 @@ io.on("connection", async (socket) => {
 
   socket.on("sendMessage", async ({ from, to, message }, callback) => {
     try {
-      const { error, chatId, text } = await updateChatMessages({
+      const { error, chatId, result, fromName, toSocket } = await updateChatMessages({
         from,
         to,
         message,
       });
-      if (error) return callback({ status: "error", text });
+      if (error) return callback({ status: "error", text: result });
       socket.to(chatId).emit("message", { from, message, time: new Date() });
+      io.to(toSocket).emit("notification", { from, name: fromName, message });
     } catch (_) {}
   });
 

@@ -32,7 +32,7 @@ const updateChatMessages = async (data) => {
     const user1 = await User.findOne({ email: from });
     const user2 = await User.findOne({ email: to });
     if (!user1 || !user2)
-      return { error: true, chatId: null, text: "User not found" };
+      return { error: true, chatId: null, result: "User not found" };
 
     const userArr = [user1.email, user2.email].sort();
     const chatId = `${userArr[0]}&${userArr[1]}`;
@@ -41,9 +41,9 @@ const updateChatMessages = async (data) => {
       { chatId },
       { $push: { messages: { message, from, time: new Date() } } }
     );
-    return { error: false, chatId };
+    return { error: false, chatId, fromName: user1.name, toSocket: user2.socketId };
   } catch (_) {
-    return { error: true, chatId: null, text: "Interval Server Error" };
+    return { error: true, chatId: null, result: "Interval Server Error" };
   }
 };
 
@@ -107,7 +107,6 @@ const updateUserStatus = async ({ email, status, socketId, io }) => {
     return true;
   } catch {}
 };
-
 
 module.exports = {
   startChat,
